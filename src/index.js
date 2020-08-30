@@ -1,191 +1,148 @@
+// Maps Widget
+// ============================================================
+
 import mapboxgl from 'mapbox-gl'
 import AdaWidgetSDK from '@ada-support/ada-widget-sdk'
 
+// Utils
+// ------------------------------------------------------------
+
+const createBounds = coords => {
+  return coords.reduce((bounds, coord) => {
+    return bounds.extend(coord)
+  }, new mapboxgl.LngLatBounds(coords[0], coords[0]))
+}
+
+// Map methods
+// ------------------------------------------------------------
+
+const renderMarkers = (map, labels, points, annotate) => {
+  points.map((point, index) => {
+    const label = labels[index]
+
+    const popup = new mapboxgl.Popup({
+      anchor: 'bottom',
+      offset: (annotate ? 12 : 36),
+      closeButton: false,
+      closeOnMove: true
+    })
+    .setHTML(`
+      <div class="custom-popover">
+        <strong>${label}</strong>
+        <a href="#" onclick="window.open('https://maps.apple.com/?q=${label}&sll${point[1]},${point[0]}', '_blank')">
+          Get Directions
+        </a>
+      </div>
+    `)
+
+    if (annotate) {
+      var customMarker = document.createElement('div')
+      customMarker.className = 'custom-marker'
+      customMarker.innerText = `${index + 1}`
+
+      new mapboxgl.Marker(customMarker)
+      .setLngLat(point)
+      .setPopup(popup)
+      .addTo(map)
+    } else {
+      new mapboxgl.Marker()
+      .setLngLat(point)
+      .setPopup(popup)
+      .addTo(map)
+    }
+  })
+}
+
+// Widget setup
+// ------------------------------------------------------------
+
 const widgetSDK = new AdaWidgetSDK()
+const statusElement = document.getElementById('status')
 
 widgetSDK.init(event => {
 
-  // Get app config
-  const { token, points, labels, annotate, stream } = widgetSDK.metaData
+  // Widget init
+  // ------------------------------------------------------------
 
-  // Handle no token
-  if (token === undefined) {
-    if (widgetSDK.widgetIsActive) {
-      // Send response to prevent blocking
-      widgetSDK.sendUserData({}, () => {})
-    }
+  if (widgetSDK.widgetIsActive) {
+    widgetSDK.sendUserData({}, () => {})
+  }
 
-    // Show error message
-    document.getElementById('loading').innerHTML = 'Could not load map.'
-    console.error('MAP ERROR: A Mapbox API token is required to display maps.')
+  const { 
+    token = null, 
+    points = null, 
+    labels = null, 
+    stream = null,
+    annotate = false
+  } = widgetSDK.metaData
 
+  // Error handling
+  // ------------------------------------------------------------
+
+  if (token === null) {
+    statusElement.innerHTML = 'Map API token missing.'
     return
   }
 
-  // Set up map
+  if (
+    stream != null
+    && (points != null || labels != null)
+  ) {
+    statusElement.innerHTML = 'Map incorrectly configured.'
+    return 
+  }
+
+  if (
+    points != null 
+    && labels != null 
+    && JSON.parse(points).length != JSON.parse(labels).length
+  ) {
+    statusElement.innerHTML = 'Mismatched amount of points to labels.'
+    return
+  }
+
+  // Map setup
+  // ------------------------------------------------------------
+
   mapboxgl.accessToken = token
+
   const map = new mapboxgl.Map({
     container: 'map-container',
-    style: 'mapbox://styles/mapbox/streets-v11',
+    style: 'mapbox://styles/mapbox/streets-v11'
   })
-
-  // Set up geolocation control
-  const geolocate = new mapboxgl.GeolocateControl({
+  
+  const geolocator = new mapboxgl.GeolocateControl({
     positionOptions: {
       enableHighAccuracy: true
     }
   })
+  
+  map.on('load', () => {
+    statusElement.remove()
 
-  if (widgetSDK.widgetIsActive) {
-
-    // Send response to prevent blocking
-    widgetSDK.sendUserData({}, () => {})
-
-    // Only add ability to geolocate if the widget is active
-    map.addControl(geolocate)
-
-  }
-
-  if (stream != undefined) {
-    // Display realtime map if a stream URL is provided and only if widget is active
-
+    // Allow user location tracking only if active
     if (widgetSDK.widgetIsActive) {
-      map.on('load', () => {
-        // Remove loading indicator once map is loaded
-        document.getElementById('loading').remove()
-  
-        const request = new XMLHttpRequest()
-        window.setInterval(() => {
-          // Make a GET request to parse the GeoJSON at the url
-          request.open('GET', stream, true)
-          request.onload = function() {
-            if (this.status >= 200 && this.status < 400) {
-              var json = JSON.parse(this.response)
-              map.getSource('tracker').setData(json)
-              map.flyTo({
-                center: json.geometry.coordinates,
-                speed: 0.5
-              })
-            }
-          }
-          request.send()
-        }, 2000)
-  
-        map.addSource('tracker', { type: 'geojson', data: stream })
-        map.addLayer({
-          id: 'tracker',
-          type: 'symbol',
-          source: 'tracker',
-          layout: {
-            'icon-image': 'rocket-15',
-            'icon-size': 1.5
-          }
-        })
-      })
-    } else {
-      // Tell the user to ask again for a realtime tracker
-      document.getElementById('loading').innerHTML = 'Real-time tracking ended. You can ask again to track.'
-      document.getElementById('map-container').remove()
+      map.addControl(geolocator)
     }
 
+    // Configuration: Markers
+    if (points != null && labels != null && stream === null) {
+      const markerPoints = JSON.parse(points)
+      const markerLabels = JSON.parse(labels)
+      const markerBounds = createBounds(markerPoints)
 
-    
+      renderMarkers(map, markerLabels, markerPoints, annotate)
 
-  } else {
-    // Display default map
-
-    const names = JSON.parse(labels)
-    const coords = JSON.parse(points)
-    const showNumbers = (annotate === 'true')
-  
-    // Handle improper points and labels
-    if (points === undefined || labels === undefined || names.length != coords.length) {
-  
-      if (widgetSDK.widgetIsActive) {
-        // Send response to prevent blocking
-        widgetSDK.sendUserData({}, () => {})
-      }
-  
-      document.getElementById('loading').innerHTML = 'Could not load map.'
-  
-      if (token === undefined) {
-        console.error('MAP ERROR: A Mapbox API token is required to display maps.')
-      }
-  
-      if (points === undefined || labels === undefined) {
-        console.error('MAP ERROR: No points or labels have been provided to show on the map.')
-      }
-  
-      if (coords.length != names.length) {
-        console.error('MAP ERROR: Mismatched number of points against labels.')
-      }
-  
-      return
+      map.fitBounds(markerBounds, { padding: 80 })
     }
 
-    // Add points and labels as markers to map
-    for (var i = 0; i < coords.length; i++) {
-      const popup = new mapboxgl.Popup({
-        anchor: 'bottom',
-        offset: (showNumbers ? 12 : 36),
-        closeButton: false,
-        closeOnMove: true
-      })
-      .setHTML(`
-        <div class="mapboxgl-custom-popover">
-          <strong>${names[i]}</strong>
-          <a href="#" onclick="window.open('https://maps.apple.com/?q=${names[i]}&sll${coords[i][1]},${coords[i][0]}', '_blank');">Get Directions</a>
-        </div>
-      `)
-
-      if (showNumbers) {
-        // Show a customer marker with a number on it
-        var markerElement = document.createElement('div')
-        markerElement.className = 'mapboxgl-custom-marker'
-        markerElement.innerText = `${i + 1}`
-
-        new mapboxgl.Marker(markerElement)
-        .setLngLat(coords[i])
-        .setPopup(popup)
-        .addTo(map)
-
-      } else {
-
-        new mapboxgl.Marker()
-        .setLngLat(coords[i])
-        .setPopup(popup)
-        .addTo(map)
+    // Configuration: Tracker
+    if (stream != null && points === null && labels === null) {
+      if (!widgetSDK.widgetIsActive) {
+        statusElement.innerHTML = 'Real-time tracking ended. Ask again to track.'
+        map.remove()
+        return
       }
-    
     }
-
-    map.on('load', () => {
-
-      // Remove loading indicator once map is loaded
-      document.getElementById('loading').remove()
-
-      // Resize bounds to fit markers
-      const bounds = coords.reduce((bounds, coord) => {
-        return bounds.extend(coord)
-      }, new mapboxgl.LngLatBounds(coords[0], coords[0]))
-      map.fitBounds(bounds, { padding: 128 })
-    })
-
-    // If geolocation triggered, resize map bounds to show user marker
-    geolocate.on('geolocate', data => {
-
-      const coordsWithUser = [
-        [data.coords.longitude, data.coords.latitude]
-      ].concat(coords)
-
-      const boundsWithUser = coordsWithUser.reduce((bounds, coord) => {
-        return bounds.extend(coord)
-      }, new mapboxgl.LngLatBounds(coordsWithUser[0], coordsWithUser[0]))
-
-      map.fitBounds(boundsWithUser, { padding: 80 })
-
-    })
-
-  }
-
+  })
 })
