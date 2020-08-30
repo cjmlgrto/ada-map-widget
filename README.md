@@ -1,27 +1,67 @@
-# template-widget
+# Ada Maps Widget
 
-A Minimal Ada App
+Display locations or track a geo data stream in real-time over an interactive map.
 
-## Configuration
+# Usage
 
-This is how the App is configured in the bot backend:
+> ### Requirement
+>
+> In order to use this app inside Ada, you must provide a [Mapbox](https://www.mapbox.com) API key, configured as a `token` in your App Input Data.
 
-![Widget block in dashboard](https://user-images.githubusercontent.com/23297403/86629883-06e8a480-bf9a-11ea-8082-fc492e0c0c77.png)
+## Mark Locations
 
-## Active view
+Display a list of coordinates as markers over an interactive map. This can help to answer questions like, *“Where are your stores?”* or *“Where can I visit you?”*.
 
-This is how the App looks when it is active:
+#### App Input Data
 
-![Active App](https://user-images.githubusercontent.com/23297403/86624395-3e068800-bf91-11ea-8f60-418d7a787cd8.png)
+- **points**: an array of coordinates, where each item is of the form `[longitude, latitude]`
+- **labels**: an array of labels for each point, where each item is of the form `"place_name"`
 
-## Submitted view
+#### Example
 
-This is how the App looks when the user has successfully submitted data:
+| App Input Data Key | Value |
+| --- | --- |
+| token | `your_token` |
+| points | `[[144.979999,-37.796021], [144.969415,-37.815514]]` |
+| labels | `["Lune HQ, Fitzroy", "Lune, Collins St"]` |
 
-![Submitted App](https://user-images.githubusercontent.com/23297403/86624404-41017880-bf91-11ea-93bc-32913000ded0.png)
+## List Locations
 
-## Inactive view
+Display a list of coordinates as labelled, numbered markers. This can help to prompt questions from Ada like, *“Where would you like to book your appointment?“* or *“Choose a pickup location“*.
 
-This is how the App looks when the user reloads a chat with an already-completed widget:
+This can provide a way for the user to visually pick from a collection of locations and **best paired with a List Option Picker message**. 
 
-![Inactive App](https://user-images.githubusercontent.com/23297403/86629652-bbce9180-bf99-11ea-95e9-95d7eae68c6b.png)
+#### App Input Data
+
+- **points**: an array of coordinates, where each item is of the form `[longitude, latitude]`
+- **labels**: an array of labels for each point, where each item is of the form `"place_name"`
+- **annotate**: a boolean as a string, of the form `true`
+
+#### Example
+
+| App Input Data Key | Value |
+| --- | --- |
+| token | `your_token` |
+| points | `[[144.979999,-37.796021], [144.969415,-37.815514]]` |
+| labels | `["Lune HQ, Fitzroy", "Lune, Collins St"]` |
+| annotate| `true` |
+
+## Track Real-time Location
+
+Display a marker that updates its location from a live data stream. This can help to answer questions like, *“Where's my package?“* or *“How's my delivery going?“*
+
+Note that real-time tracking only appears if the widget is active, otherwise a message prompting the user to ask for tracking again is displayed.
+
+#### App Input Data
+
+- **stream**: URL endpoint for a [GeoJSON](https://geojson.org) stream, of the form `https://example-url.com`
+
+#### Example
+
+| App Input Data Key | Value |
+| --- | --- |
+| token | `your_token` |
+| stream | `https://example-url.com` |
+
+
+
