@@ -6,16 +6,31 @@ const widgetSDK = new AdaWidgetSDK()
 widgetSDK.init(event => {
 
   // Get app config
-  const { token, type, points } = widgetSDK.metaData
+  const { token, points, labels } = widgetSDK.metaData
 
-  // Handle no tokens
-  if (token === undefined) {
-    console.error('A Mapbox API token is required to display maps.')
-    document.getElementById('loading').innerHTML = 'Could not load map.'
+  const names = JSON.parse(labels)
+  const coords = JSON.parse(points)
+
+  // Handle impropr config
+  if (token === undefined || points === undefined || labels === undefined || names.length != coords.length) {
 
     if (widgetSDK.widgetIsActive) {
       // Send response to prevent blocking
       widgetSDK.sendUserData({}, () => {})
+    }
+
+    document.getElementById('loading').innerHTML = 'Could not load map.'
+
+    if (token === undefined) {
+      console.error('MAP ERROR: A Mapbox API token is required to display maps.')
+    }
+
+    if (points === undefined || labels === undefined) {
+      console.error('MAP ERROR: No points or labels have been provided to show on the map.')
+    }
+
+    if (coords.length != names.length) {
+      console.error('MAP ERROR: Mismatched number of points against labels.')
     }
 
     return
@@ -28,25 +43,29 @@ widgetSDK.init(event => {
     style: 'mapbox://styles/mapbox/streets-v11',
   })
 
-  // Prepare locations
-  const coords = JSON.parse(points)
-  const bounds = coords.reduce((bounds, coord) => {
-    return bounds.extend(coord)
-  }, new mapboxgl.LngLatBounds(coords[0], coords[0]))
+  // Add points and labels as markers to map
+  for (var i = 0; i < coords.length; i++) {
+    const popup = new mapboxgl.Popup({
+      anchor: 'bottom'
+    })
+    .setHTML('<strong>' + names[i] + '</strong>')
 
-  // Add locations as markers to map
-  for (const coord of coords) {
     new mapboxgl.Marker()
-    .setLngLat(coord)
+    .setLngLat(coords[i])
+    .setPopup(popup)
     .addTo(map)
   }
 
-  // Remove loading indicator once map is loaded
   map.on('load', () => {
+
+    // Remove loading indicator once map is loaded
     document.getElementById('loading').remove()
 
     // Resize bounds to fit markers
-    map.fitBounds(bounds, { padding: 64 })
+    const bounds = coords.reduce((bounds, coord) => {
+      return bounds.extend(coord)
+    }, new mapboxgl.LngLatBounds(coords[0], coords[0]))
+    map.fitBounds(bounds, { padding: 128 })
   })
 
   if (widgetSDK.widgetIsActive) {
@@ -73,7 +92,7 @@ widgetSDK.init(event => {
         return bounds.extend(coord)
       }, new mapboxgl.LngLatBounds(coordsWithUser[0], coordsWithUser[0]))
 
-      map.fitBounds(boundsWithUser, { padding: 64 })
+      map.fitBounds(boundsWithUser, { padding: 80 })
 
     })
 
