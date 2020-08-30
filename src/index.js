@@ -8,11 +8,6 @@ widgetSDK.init(event => {
   // Get app config
   const { token, type, points } = widgetSDK.metaData
 
-  // Send response to prevent blocking
-  if (widgetSDK.widgetIsActive) {
-    widgetSDK.sendUserData({}, () => {})
-  }
-
   // Set up map
   mapboxgl.accessToken = token
   const map = new mapboxgl.Map({
@@ -24,5 +19,21 @@ widgetSDK.init(event => {
   map.on('load', () => {
     document.getElementById('loading').remove()
   })
+
+  if (widgetSDK.widgetIsActive) {
+
+    // Send response to prevent blocking
+    widgetSDK.sendUserData({}, () => {})
+
+    // Set up geolocation control
+    const geolocate = new mapboxgl.GeolocateControl({
+      positionOptions: {
+        enableHighAccuracy: true
+      }
+    })
+    map.addControl(geolocate)
+
+  }
+  
 
 })
