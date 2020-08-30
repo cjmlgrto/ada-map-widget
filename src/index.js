@@ -170,6 +170,18 @@ widgetSDK.init(event => {
       renderMarkers(map, markerLabels, markerPoints, annotate)
 
       map.fitBounds(markerBounds, { padding: 80 })
+
+      geolocator.on('geolocate', data => {
+
+        const pointsWithUser = [
+          [data.coords.longitude, data.coords.latitude]
+        ].concat(markerPoints)
+        
+        const boundsWithUser = createBounds(pointsWithUser)
+        
+        map.fitBounds(boundsWithUser, { padding: 80 })
+
+      })
     }
 
     // Configuration: Tracker
