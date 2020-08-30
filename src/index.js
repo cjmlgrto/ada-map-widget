@@ -6,10 +6,11 @@ const widgetSDK = new AdaWidgetSDK()
 widgetSDK.init(event => {
 
   // Get app config
-  const { token, points, labels } = widgetSDK.metaData
+  const { token, points, labels, annotate } = widgetSDK.metaData
 
   const names = JSON.parse(labels)
   const coords = JSON.parse(points)
+  const showNumbers = (annotate === 'true')
 
   // Handle impropr config
   if (token === undefined || points === undefined || labels === undefined || names.length != coords.length) {
@@ -47,6 +48,7 @@ widgetSDK.init(event => {
   for (var i = 0; i < coords.length; i++) {
     const popup = new mapboxgl.Popup({
       anchor: 'bottom',
+      offset: (showNumbers ? 12 : 36),
       closeButton: false,
       closeOnMove: true
     })
@@ -56,11 +58,26 @@ widgetSDK.init(event => {
         <a href="#" onclick="window.open('https://maps.apple.com/?q=${names[i]}&sll${coords[i][1]},${coords[i][0]}', '_blank');">Get Directions</a>
       </div>
     `)
-    
-    new mapboxgl.Marker()
-    .setLngLat(coords[i])
-    .setPopup(popup)
-    .addTo(map)
+
+    if (showNumbers) {
+      // Show a customer marker with a number on it
+      var markerElement = document.createElement('div')
+      markerElement.className = 'mapboxgl-custom-marker'
+      markerElement.innerText = `${i + 1}`
+
+      new mapboxgl.Marker(markerElement)
+      .setLngLat(coords[i])
+      .setPopup(popup)
+      .addTo(map)
+
+    } else {
+
+      new mapboxgl.Marker()
+      .setLngLat(coords[i])
+      .setPopup(popup)
+      .addTo(map)
+    }
+  
   }
 
   map.on('load', () => {
