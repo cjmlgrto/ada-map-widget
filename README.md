@@ -69,7 +69,7 @@ Note that real-time tracking only appears if the widget is active, otherwise a m
 | App Input Data Key | Value |
 | --- | --- |
 | token | `your_token` |
-| stream | `https://example-url.com` |
+| stream | `https://wanderdrone.appspot.com` |
 
 
 
