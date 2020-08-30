@@ -163,11 +163,12 @@ widgetSDK.init(event => {
 
     // Configuration: Markers
     if (points != null && labels != null && stream === null) {
+      const showNumbers = (annotate === 'true')
       const markerPoints = JSON.parse(points)
       const markerLabels = JSON.parse(labels)
       const markerBounds = createBounds(markerPoints)
 
-      renderMarkers(map, markerLabels, markerPoints, annotate)
+      renderMarkers(map, markerLabels, markerPoints, showNumbers)
 
       map.fitBounds(markerBounds, { padding: 80 })
 
