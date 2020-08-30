@@ -52,6 +52,34 @@ widgetSDK.init(event => {
     map.on('load', () => {
       // Remove loading indicator once map is loaded
       document.getElementById('loading').remove()
+
+      const request = new XMLHttpRequest()
+      window.setInterval(() => {
+        // Make a GET request to parse the GeoJSON at the url
+        request.open('GET', stream, true)
+        request.onload = function() {
+          if (this.status >= 200 && this.status < 400) {
+            var json = JSON.parse(this.response)
+            map.getSource('tracker').setData(json)
+            map.flyTo({
+              center: json.geometry.coordinates,
+              speed: 0.5
+            })
+          }
+        }
+        request.send()
+      }, 2000)
+
+      map.addSource('tracker', { type: 'geojson', data: stream })
+      map.addLayer({
+        id: 'tracker',
+        type: 'symbol',
+        source: 'tracker',
+        layout: {
+          'icon-image': 'rocket-15',
+          'icon-size': 1.5
+        }
+      })
     })
     
 
