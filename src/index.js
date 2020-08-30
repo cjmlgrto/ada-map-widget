@@ -8,6 +8,19 @@ widgetSDK.init(event => {
   // Get app config
   const { token, type, points } = widgetSDK.metaData
 
+  // Handle no tokens
+  if (token === undefined) {
+    console.error('A Mapbox API token is required to display maps.')
+    document.getElementById('loading').innerHTML = 'Could not load map.'
+
+    if (widgetSDK.widgetIsActive) {
+      // Send response to prevent blocking
+      widgetSDK.sendUserData({}, () => {})
+    }
+
+    return
+  }
+
   // Set up map
   mapboxgl.accessToken = token
   const map = new mapboxgl.Map({
