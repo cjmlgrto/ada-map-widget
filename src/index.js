@@ -6,7 +6,7 @@ const widgetSDK = new AdaWidgetSDK()
 widgetSDK.init(event => {
 
   // Get app config
-  const { token, points, labels, annotate, type, stream } = widgetSDK.metaData
+  const { token, points, labels, annotate, stream } = widgetSDK.metaData
 
   // Handle no token
   if (token === undefined) {
@@ -46,8 +46,8 @@ widgetSDK.init(event => {
 
   }
 
-  if (type === 'REALTIME') {
-    // Display realtime map
+  if (stream != undefined) {
+    // Display realtime map if a stream URL is provided
 
     map.on('load', () => {
       // Remove loading indicator once map is loaded
