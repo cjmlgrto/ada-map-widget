@@ -53,6 +53,43 @@ const renderMarkers = (map, labels, points, annotate) => {
   })
 }
 
+const renderTracker = (map, url) => {
+  const request = new XMLHttpRequest()
+
+  window.setInterval(() => {
+    request.open('GET', url, true)
+
+    request.onload = function() {
+      if (this.status >= 200 && this.status < 400) {
+        const data = JSON.parse(this.response)
+        map.getSource('tracker').setData(data)
+        map.flyTo({
+          center: data.geometry.coordinates,
+          speed: 0.5
+        })
+      }
+    }
+
+    request.send()
+
+  }, 2000)
+
+  map.addSource('tracker', {
+    type: 'geojson',
+    data: url
+  })
+
+  map.addLayer({
+    id: 'tracker',
+    type: 'symbol',
+    source: 'tracker',
+    layout: {
+      'icon-image': 'rocket-15',
+      'icon-size': 1.5
+    }
+  })
+}
+
 // Widget setup
 // ------------------------------------------------------------
 
@@ -118,8 +155,7 @@ widgetSDK.init(event => {
   })
   
   map.on('load', () => {
-    statusElement.remove()
-
+  
     // Allow user location tracking only if active
     if (widgetSDK.widgetIsActive) {
       map.addControl(geolocator)
@@ -139,10 +175,14 @@ widgetSDK.init(event => {
     // Configuration: Tracker
     if (stream != null && points === null && labels === null) {
       if (!widgetSDK.widgetIsActive) {
-        statusElement.innerHTML = 'Real-time tracking ended. Ask again to track.'
+        statusElement.innerHTML = 'Real-time tracking ended. <br/> Ask again to track.'
         map.remove()
         return
       }
+
+      renderTracker(map, stream)
     }
+
+    statusElement.remove()
   })
 })
