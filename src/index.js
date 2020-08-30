@@ -46,10 +46,17 @@ widgetSDK.init(event => {
   // Add points and labels as markers to map
   for (var i = 0; i < coords.length; i++) {
     const popup = new mapboxgl.Popup({
-      anchor: 'bottom'
+      anchor: 'bottom',
+      closeButton: false,
+      closeOnMove: true
     })
-    .setHTML('<strong>' + names[i] + '</strong>')
-
+    .setHTML(`
+      <div class="mapboxgl-custom-popover">
+        <strong>${names[i]}</strong>
+        <a href="#" onclick="window.open('https://maps.apple.com/?q=${names[i]}&sll${coords[i][1]},${coords[i][0]}', '_blank');">Get Directions</a>
+      </div>
+    `)
+    
     new mapboxgl.Marker()
     .setLngLat(coords[i])
     .setPopup(popup)
