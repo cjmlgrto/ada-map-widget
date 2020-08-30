@@ -6,33 +6,18 @@ const widgetSDK = new AdaWidgetSDK()
 widgetSDK.init(event => {
 
   // Get app config
-  const { token, points, labels, annotate } = widgetSDK.metaData
+  const { token, points, labels, annotate, type, stream } = widgetSDK.metaData
 
-  const names = JSON.parse(labels)
-  const coords = JSON.parse(points)
-  const showNumbers = (annotate === 'true')
-
-  // Handle impropr config
-  if (token === undefined || points === undefined || labels === undefined || names.length != coords.length) {
-
+  // Handle no token
+  if (token === undefined) {
     if (widgetSDK.widgetIsActive) {
       // Send response to prevent blocking
       widgetSDK.sendUserData({}, () => {})
     }
 
+    // Show error message
     document.getElementById('loading').innerHTML = 'Could not load map.'
-
-    if (token === undefined) {
-      console.error('MAP ERROR: A Mapbox API token is required to display maps.')
-    }
-
-    if (points === undefined || labels === undefined) {
-      console.error('MAP ERROR: No points or labels have been provided to show on the map.')
-    }
-
-    if (coords.length != names.length) {
-      console.error('MAP ERROR: Mismatched number of points against labels.')
-    }
+    console.error('MAP ERROR: A Mapbox API token is required to display maps.')
 
     return
   }
@@ -44,52 +29,11 @@ widgetSDK.init(event => {
     style: 'mapbox://styles/mapbox/streets-v11',
   })
 
-  // Add points and labels as markers to map
-  for (var i = 0; i < coords.length; i++) {
-    const popup = new mapboxgl.Popup({
-      anchor: 'bottom',
-      offset: (showNumbers ? 12 : 36),
-      closeButton: false,
-      closeOnMove: true
-    })
-    .setHTML(`
-      <div class="mapboxgl-custom-popover">
-        <strong>${names[i]}</strong>
-        <a href="#" onclick="window.open('https://maps.apple.com/?q=${names[i]}&sll${coords[i][1]},${coords[i][0]}', '_blank');">Get Directions</a>
-      </div>
-    `)
-
-    if (showNumbers) {
-      // Show a customer marker with a number on it
-      var markerElement = document.createElement('div')
-      markerElement.className = 'mapboxgl-custom-marker'
-      markerElement.innerText = `${i + 1}`
-
-      new mapboxgl.Marker(markerElement)
-      .setLngLat(coords[i])
-      .setPopup(popup)
-      .addTo(map)
-
-    } else {
-
-      new mapboxgl.Marker()
-      .setLngLat(coords[i])
-      .setPopup(popup)
-      .addTo(map)
+  // Set up geolocation control
+  const geolocate = new mapboxgl.GeolocateControl({
+    positionOptions: {
+      enableHighAccuracy: true
     }
-  
-  }
-
-  map.on('load', () => {
-
-    // Remove loading indicator once map is loaded
-    document.getElementById('loading').remove()
-
-    // Resize bounds to fit markers
-    const bounds = coords.reduce((bounds, coord) => {
-      return bounds.extend(coord)
-    }, new mapboxgl.LngLatBounds(coords[0], coords[0]))
-    map.fitBounds(bounds, { padding: 128 })
   })
 
   if (widgetSDK.widgetIsActive) {
@@ -97,13 +41,99 @@ widgetSDK.init(event => {
     // Send response to prevent blocking
     widgetSDK.sendUserData({}, () => {})
 
-    // Set up geolocation control
-    const geolocate = new mapboxgl.GeolocateControl({
-      positionOptions: {
-        enableHighAccuracy: true
-      }
-    })
+    // Only add ability to geolocate if the widget is active
     map.addControl(geolocate)
+
+  }
+
+  if (type === 'REALTIME') {
+    // Display realtime map
+
+    map.on('load', () => {
+      // Remove loading indicator once map is loaded
+      document.getElementById('loading').remove()
+    })
+    
+
+  } else {
+    // Display default map
+
+    const names = JSON.parse(labels)
+    const coords = JSON.parse(points)
+    const showNumbers = (annotate === 'true')
+  
+    // Handle improper points and labels
+    if (points === undefined || labels === undefined || names.length != coords.length) {
+  
+      if (widgetSDK.widgetIsActive) {
+        // Send response to prevent blocking
+        widgetSDK.sendUserData({}, () => {})
+      }
+  
+      document.getElementById('loading').innerHTML = 'Could not load map.'
+  
+      if (token === undefined) {
+        console.error('MAP ERROR: A Mapbox API token is required to display maps.')
+      }
+  
+      if (points === undefined || labels === undefined) {
+        console.error('MAP ERROR: No points or labels have been provided to show on the map.')
+      }
+  
+      if (coords.length != names.length) {
+        console.error('MAP ERROR: Mismatched number of points against labels.')
+      }
+  
+      return
+    }
+
+    // Add points and labels as markers to map
+    for (var i = 0; i < coords.length; i++) {
+      const popup = new mapboxgl.Popup({
+        anchor: 'bottom',
+        offset: (showNumbers ? 12 : 36),
+        closeButton: false,
+        closeOnMove: true
+      })
+      .setHTML(`
+        <div class="mapboxgl-custom-popover">
+          <strong>${names[i]}</strong>
+          <a href="#" onclick="window.open('https://maps.apple.com/?q=${names[i]}&sll${coords[i][1]},${coords[i][0]}', '_blank');">Get Directions</a>
+        </div>
+      `)
+
+      if (showNumbers) {
+        // Show a customer marker with a number on it
+        var markerElement = document.createElement('div')
+        markerElement.className = 'mapboxgl-custom-marker'
+        markerElement.innerText = `${i + 1}`
+
+        new mapboxgl.Marker(markerElement)
+        .setLngLat(coords[i])
+        .setPopup(popup)
+        .addTo(map)
+
+      } else {
+
+        new mapboxgl.Marker()
+        .setLngLat(coords[i])
+        .setPopup(popup)
+        .addTo(map)
+      }
+    
+    }
+
+    map.on('load', () => {
+
+      // Remove loading indicator once map is loaded
+      document.getElementById('loading').remove()
+
+      // Resize bounds to fit markers
+      const bounds = coords.reduce((bounds, coord) => {
+        return bounds.extend(coord)
+      }, new mapboxgl.LngLatBounds(coords[0], coords[0]))
+      map.fitBounds(bounds, { padding: 128 })
+    })
 
     // If geolocation triggered, resize map bounds to show user marker
     geolocate.on('geolocate', data => {
@@ -121,6 +151,5 @@ widgetSDK.init(event => {
     })
 
   }
-  
 
 })
