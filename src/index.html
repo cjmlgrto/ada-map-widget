@@ -1,18 +1,70 @@
 <html lang="en">
 
   <head>
+    <title>Map</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Example Widget</title>
+
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      #loading {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #loading div {
+        width: 8px;
+        height: 8px;
+        margin: 2px;
+        border-radius: 50%;
+        background: #ADADB3;
+        opacity: 0.2;
+      }
+
+      @keyframes pulse {
+        50% { opacity: 1 }
+      }
+
+      #loading .first {
+        animation-name: pulse;
+        animation-delay: 0.3333s;
+        animation-duration: 1s;
+        animation-iteration-count: infinite;
+      }
+
+      #loading .second {
+        animation-name: pulse;
+        animation-delay: 0.6666s;
+        animation-duration: 1s;
+        animation-iteration-count: infinite;
+      }
+
+      #loading .third {
+        animation-name: pulse;
+        animation-delay: 0.9999s;
+        animation-duration: 1s;
+        animation-iteration-count: infinite;
+      }
+    </style>
+
   </head>
 
   <body>
-    <div id="widget-container">
-      <div id="widget-input-data">Loading...</div>
-      <input id="input-field">
-      <button id="submit-button">Submit</button>
-      <div id="submit-message"></div>
+    <div id="loading">
+      <div class="first"></div>
+      <div class="second"></div>
+      <div class="third"></div>
     </div>
   </body>
 
